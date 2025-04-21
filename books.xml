@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfBook xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Book>
+    <Id>1</Id>
+    <Title>Война и мир</Title>
+    <Author>Лев Толстой</Author>
+    <Year>1869</Year>
+    <Price>499.99</Price>
+    <IsAvailable>true</IsAvailable>
+  </Book>
+  <Book>
+    <Id>2</Id>
+    <Title>Преступление и наказание</Title>
+    <Author>Фёдор Достоевский</Author>
+    <Year>1866</Year>
+    <Price>379.50</Price>
+    <IsAvailable>false</IsAvailable>
+  </Book>
+  <Book>
+    <Id>3</Id>
+    <Title>Мастер и Маргарита</Title>
+    <Author>Михаил Булгаков</Author>
+    <Year>1940</Year>
+    <Price>420.00</Price>
+    <IsAvailable>true</IsAvailable>
+  </Book>
+</ArrayOfBook>
