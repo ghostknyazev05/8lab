@@ -1,19 +1,33 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 
+/// <summary>
+/// Класс для взаимодействия с пользователем
+/// </summary>
 class Program
 {
     static void Main()
     {
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
 
         Console.WriteLine("Текущая директория: " + Directory.GetCurrentDirectory());
 
-        if (!System.IO.File.Exists("books.dat"))
-        {
-            BookDatabase.InitializeFromXml();
-        }
+        Console.Write("Введите путь к XML-файлу (например, books.xml): ");
+        string xmlFile = Console.ReadLine();
 
-        List<Book> books = BookDatabase.Load();
+        Console.Write("Введите путь к бинарному файлу (например, books.bin): ");
+        string binaryFile = Console.ReadLine();
+
+        List<Book> books = File.Exists(binaryFile)
+            ? BookDatabase.Load(binaryFile)
+            : BookDatabase.InitializeFromXml(xmlFile, binaryFile);
+
+        if (books == null)
+        {
+            Console.WriteLine("Ошибка загрузки данных.");
+            return;
+        }
 
         while (true)
         {
@@ -33,10 +47,10 @@ class Program
                     BookDatabase.View(books);
                     break;
                 case "2":
-                    BookDatabase.Add(books);
+                    BookDatabase.Add(books, binaryFile);
                     break;
                 case "3":
-                    BookDatabase.Remove(books);
+                    BookDatabase.Remove(books, binaryFile);
                     break;
                 case "4":
                     BookDatabase.ExecuteQueries(books);
