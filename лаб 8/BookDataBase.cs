@@ -2,20 +2,43 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Xml.Serialization;
 
 /// <summary>
-/// Класс, который реализует основную логику по работе с базой книг
+/// Класс для работы с базой данных книг
 /// </summary>
-public static class BookDatabase
+internal class BookDatabase
 {
-    public static List<Book> Load(string binaryPath)
+    // Загрузка списка книг из XML-файла
+    public static List<Book> LoadFromXml(string xmlPath)
     {
         try
         {
-            using FileStream stream = new FileStream(binaryPath, FileMode.Open);
-            return JsonSerializer.Deserialize<List<Book>>(stream);
+            XmlSerializer serializer = new XmlSerializer(typeof(List<Book>));
+            using FileStream fs = new FileStream(xmlPath, FileMode.Open);
+            return (List<Book>)serializer.Deserialize(fs);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при чтении XML-файла: {ex.Message}");
+            return new List<Book>();
+        }
+    }
+
+    // Загрузка списка книг из бинарного файла (JSON)
+    public static List<Book> LoadFromBinary(string binaryPath)
+    {
+        try
+        {
+            if (!File.Exists(binaryPath))
+            {
+                return new List<Book>();
+            }
+
+            string json = File.ReadAllText(binaryPath);
+            return JsonSerializer.Deserialize<List<Book>>(json) ?? new List<Book>();
         }
         catch (Exception ex)
         {
@@ -24,39 +47,21 @@ public static class BookDatabase
         }
     }
 
-    public static List<Book> InitializeFromXml(string xmlPath, string binaryPath)
+    // Сохранение списка книг в бинарный файл (JSON)
+    public static void SaveToBinary(List<Book> books, string binaryPath)
     {
-        if (!File.Exists(xmlPath))
-        {
-            Console.WriteLine("XML-файл не найден.");
-            return null;
-        }
-
         try
         {
-            XmlSerializer serializer = new XmlSerializer(typeof(List<Book>));
-
-            using FileStream xmlStream = new FileStream(xmlPath, FileMode.Open);
-            List<Book> books = (List<Book>)serializer.Deserialize(xmlStream);
-
-            Save(books, binaryPath);
-
-            Console.WriteLine("Данные загружены из XML и сохранены в бинарный файл.");
-            return books;
+            string json = JsonSerializer.Serialize(books, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(binaryPath, json);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка при загрузке XML: {ex.Message}");
-            return null;
+            Console.WriteLine($"Ошибка при сохранении в бинарный файл: {ex.Message}");
         }
     }
 
-    public static void Save(List<Book> books, string binaryPath)
-    {
-        using FileStream stream = new FileStream(binaryPath, FileMode.Create);
-        JsonSerializer.Serialize(stream, books);
-    }
-
+    // Просмотр всех книг
     public static void View(List<Book> books)
     {
         if (!books.Any())
@@ -65,9 +70,18 @@ public static class BookDatabase
             return;
         }
 
-        books.Select(book => book.ToString()).ToList().ForEach(Console.WriteLine);
+        StringBuilder output = new StringBuilder();
+
+        foreach (var book in books)
+        {
+            output.AppendLine(book.ToString());
+        }
+
+        Console.WriteLine(output.ToString());
     }
 
+
+    // Добавление новой книги
     public static void Add(List<Book> books, string binaryPath)
     {
         try
@@ -80,8 +94,7 @@ public static class BookDatabase
                 return;
             }
 
-            Console.Write("Введите ID: ");
-            int id = int.Parse(Console.ReadLine());
+            int id = InputValidator.GetValidIntInput("Введите ID: ", allowNegative: false);
 
             if (books.Any(b => b.Id == id))
             {
@@ -90,38 +103,40 @@ public static class BookDatabase
             }
 
             Console.Write("Введите название: ");
-            string title = Console.ReadLine();
+            string title = Console.ReadLine() ?? string.Empty;
 
             Console.Write("Введите автора: ");
-            string author = Console.ReadLine();
+            string author = Console.ReadLine() ?? string.Empty;
 
-            Console.Write("Введите год издания: ");
-            int year = int.Parse(Console.ReadLine());
+            int year = InputValidator.GetValidIntInput("Введите год издания: ");
+            double price = InputValidator.GetValidDoubleInput("Введите цену: ", allowNegative: false);
 
-            Console.Write("Введите цену: ");
-            double price = double.Parse(Console.ReadLine());
-
-            Console.Write("Книга в наличии (true/false): ");
-            bool isAvailable = bool.Parse(Console.ReadLine());
+            Console.Write("Книга в наличии? (true/false): ");
+            if (!bool.TryParse(Console.ReadLine(), out bool isAvailable))
+            {
+                Console.WriteLine("Ошибка ввода наличия книги.");
+                return;
+            }
 
             Book newBook = new Book(id, title, author, year, price, isAvailable);
             books.Add(newBook);
 
-            Save(books, binaryPath);
+            SaveToBinary(books, binaryPath);
             Console.WriteLine("Книга успешно добавлена.");
         }
         catch
         {
-            Console.WriteLine("Ошибка ввода. Проверьте данные.");
+            Console.WriteLine("Ошибка ввода. Проверьте корректность данных.");
         }
     }
 
+    // Удаление книги по ID
     public static void Remove(List<Book> books, string binaryPath)
     {
         Console.Write("Введите ID книги для удаления: ");
         if (!int.TryParse(Console.ReadLine(), out int id))
         {
-            Console.WriteLine("Неверный ID.");
+            Console.WriteLine("Неверный формат ID.");
             return;
         }
 
@@ -129,7 +144,7 @@ public static class BookDatabase
 
         if (book == null)
         {
-            Console.WriteLine("Книга не найдена.");
+            Console.WriteLine("Книга с таким ID не найдена.");
             return;
         }
 
@@ -143,15 +158,16 @@ public static class BookDatabase
         }
 
         books.Remove(book);
-        Save(books, binaryPath);
-        Console.WriteLine("Книга удалена.");
+        SaveToBinary(books, binaryPath);
+        Console.WriteLine("Книга успешно удалена.");
     }
 
+    // Выполнение пользовательских запросов
     public static void ExecuteQueries(List<Book> books)
     {
         Console.WriteLine("\nВыберите запрос:");
         Console.WriteLine("1 - Книги после 2000 года");
-        Console.WriteLine("2 - В наличии и дешевле 500 ₽");
+        Console.WriteLine("2 - Книги в наличии и дешевле 500 ₽");
         Console.WriteLine("3 - Средняя цена всех книг");
         Console.WriteLine("4 - Общее количество книг");
 
@@ -161,28 +177,35 @@ public static class BookDatabase
         switch (input)
         {
             case "1":
+                var booksAfter2000 = books.Where(b => b.Year > 2000).OrderBy(b => b.Year);
                 Console.WriteLine("\nКниги после 2000 года:");
-                books.Where(b => b.Year > 2000).ToList().ForEach(Console.WriteLine);
-                break;
+                foreach (var book in booksAfter2000)
+                {
+                    Console.WriteLine(book);
+                }
+                return;
 
             case "2":
-                Console.WriteLine("\nВ Доступные книги дешевле 500 ₽:");
-                books.Where(b => b.IsAvailable && b.Price < 500).ToList().ForEach(Console.WriteLine);
-                break;
+                var availableCheapBooks = books.Where(b => b.IsAvailable && b.Price < 500);
+                Console.WriteLine("\nКниги в наличии и дешевле 500 ₽:");
+                foreach (var book in availableCheapBooks)
+                {
+                    Console.WriteLine(book);
+                }
+                return;
 
             case "3":
-                Console.WriteLine("\nСредняя цена книг:");
-                Console.WriteLine($"{(books.Any() ? books.Average(b => b.Price) : 0):F2} ₽");
-                break;
+                double averagePrice = books.Any() ? books.Average(b => b.Price) : 0;
+                Console.WriteLine($"\nСредняя цена всех книг: {averagePrice:F2} ₽");
+                return;
 
             case "4":
-                Console.WriteLine("\nОбщее количество книг:");
-                Console.WriteLine(books.Count);
-                break;
+                Console.WriteLine($"\nОбщее количество книг: {books.Count}");
+                return;
 
             default:
-                Console.WriteLine("Неверный выбор.");
-                break;
+                Console.WriteLine("Неверный выбор запроса.");
+                return;
         }
     }
 }
