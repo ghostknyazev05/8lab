@@ -3,62 +3,63 @@ using System.Collections.Generic;
 using System.IO;
 
 /// <summary>
-/// Класс для взаимодействия с пользователем
+/// Главный класс программы
 /// </summary>
-class Program
+internal class Program
 {
-    static void Main()
+    private static void Main()
     {
+        
         Console.OutputEncoding = System.Text.Encoding.UTF8;
 
+        
         Console.WriteLine("Текущая директория: " + Directory.GetCurrentDirectory());
 
         Console.Write("Введите путь к XML-файлу (например, books.xml): ");
-        string xmlFile = Console.ReadLine();
+        string xmlPath = Console.ReadLine() ?? string.Empty;
 
         Console.Write("Введите путь к бинарному файлу (например, books.bin): ");
-        string binaryFile = Console.ReadLine();
+        string binaryPath = Console.ReadLine() ?? string.Empty;
 
-        List<Book> books = File.Exists(binaryFile)
-            ? BookDatabase.Load(binaryFile)
-            : BookDatabase.InitializeFromXml(xmlFile, binaryFile);
+        List<Book> books = BookDatabase.LoadFromBinary(binaryPath);
 
-        if (books == null)
+        if (!books.Any())
         {
-            Console.WriteLine("Ошибка загрузки данных.");
-            return;
+            books = BookDatabase.LoadFromXml(xmlPath);
+            BookDatabase.SaveToBinary(books, binaryPath);
         }
 
         while (true)
         {
-            Console.WriteLine("\n--- Каталог книг ---");
-            Console.WriteLine("1. Просмотреть книги");
-            Console.WriteLine("2. Добавить книгу");
-            Console.WriteLine("3. Удалить книгу");
-            Console.WriteLine("4. Выполнить запросы");
-            Console.WriteLine("0. Выход");
-            Console.Write("Выберите действие: ");
+            Console.WriteLine("\nВыберите действие:");
+            Console.WriteLine("1 - Просмотреть все книги");
+            Console.WriteLine("2 - Добавить новую книгу");
+            Console.WriteLine("3 - Удалить книгу");
+            Console.WriteLine("4 - Выполнить запрос");
+            Console.WriteLine("0 - Выход");
 
-            string input = Console.ReadLine();
+            Console.Write("Ваш выбор: ");
+            string choice = Console.ReadLine();
 
-            switch (input)
+            switch (choice)
             {
                 case "1":
                     BookDatabase.View(books);
                     break;
                 case "2":
-                    BookDatabase.Add(books, binaryFile);
+                    BookDatabase.Add(books, binaryPath);
                     break;
                 case "3":
-                    BookDatabase.Remove(books, binaryFile);
+                    BookDatabase.Remove(books, binaryPath);
                     break;
                 case "4":
                     BookDatabase.ExecuteQueries(books);
                     break;
                 case "0":
+                    Console.WriteLine("Завершение работы программы.");
                     return;
                 default:
-                    Console.WriteLine("Неверный выбор.");
+                    Console.WriteLine("Неверный выбор. Попробуйте снова.");
                     break;
             }
         }
