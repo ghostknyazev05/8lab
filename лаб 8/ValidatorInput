@@ -1,0 +1,47 @@
+using System;
+
+/// <summary>
+/// Класс для проверки входных данных
+/// </summary>
+public static class InputValidator
+{
+    public static int GetValidIntInput(string message, bool allowNegative = true)
+    {
+        while (true)
+        {
+            Console.Write(message);
+            if (int.TryParse(Console.ReadLine(), out int result))
+            {
+                if (!allowNegative && result < 0)
+                {
+                    Console.WriteLine("Значение не может быть отрицательным.");
+                    continue;
+                }
+
+                return result;
+            }
+
+            Console.WriteLine("Ошибка: введите целое число.");
+        }
+    }
+
+    public static double GetValidDoubleInput(string message, bool allowNegative = true)
+    {
+        while (true)
+        {
+            Console.Write(message);
+            if (double.TryParse(Console.ReadLine(), out double result))
+            {
+                if (!allowNegative && result < 0)
+                {
+                    Console.WriteLine("Значение не может быть отрицательным.");
+                    continue;
+                }
+
+                return result;
+            }
+
+            Console.WriteLine("Ошибка: введите число.");
+        }
+    }
+}
