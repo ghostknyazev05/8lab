@@ -7,7 +7,6 @@ using System.Xml.Serialization;
 /// </summary>
 [Serializable]
 public class Book
-
 {
     private int _id;
     private string _title;
@@ -19,19 +18,24 @@ public class Book
     public int Id
     {
         get => _id;
-        set => _id = value;
+        set
+        {
+            if (value < 0)
+                throw new ArgumentException("ID must be non-negative.");
+            _id = value;
+        }
     }
 
     public string Title
     {
         get => _title;
-        set => _title = value;
+        set => _title = value ?? string.Empty;
     }
 
     public string Author
     {
         get => _author;
-        set => _author = value;
+        set => _author = value ?? string.Empty;
     }
 
     public int Year
@@ -43,7 +47,12 @@ public class Book
     public double Price
     {
         get => _price;
-        set => _price = value;
+        set
+        {
+            if (value < 0)
+                throw new ArgumentException("Price must be non-negative.");
+            _price = value;
+        }
     }
 
     public bool IsAvailable
@@ -56,12 +65,12 @@ public class Book
 
     public Book(int id, string title, string author, int year, double price, bool isAvailable)
     {
-        _id = id;
-        _title = title;
-        _author = author;
-        _year = year;
-        _price = price;
-        _isAvailable = isAvailable;
+        Id = id;
+        Title = title;
+        Author = author;
+        Year = year;
+        Price = price;
+        IsAvailable = isAvailable;
     }
 
     public override string ToString()
@@ -70,9 +79,16 @@ public class Book
         builder.Append("ID: ").Append(_id)
                .Append(", Название: ").Append(_title)
                .Append(", Автор: ").Append(_author)
-               .Append(", Год: ").Append(_year >= 0 ? _year.ToString() : $"{Math.Abs(_year)} до н.э.")
-               .Append(", Цена: ").AppendFormat("{0:C}", _price)
+               .Append(", Год: ");
+
+        if (_year < 0)
+            builder.Append(Math.Abs(_year)).Append(" до н.э.");
+        else
+            builder.Append(_year);
+
+        builder.Append(", Цена: ").AppendFormat("{0:C}", _price)
                .Append(", В наличии: ").Append(_isAvailable ? "да" : "нет");
+
         return builder.ToString();
     }
 }
